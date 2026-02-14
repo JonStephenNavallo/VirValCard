@@ -1,0 +1,1467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>For You</title>
+    <!-- Added Google Fonts for better readability -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- RESET & BASICS --- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+            overflow: hidden; /* Locked until unfolded */
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #4a4a4a;
+            transition: background 1s ease;
+        }
+
+        /* --- BACKGROUND DECORATION --- */
+        .bg-hearts {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.05; /* Subtle static pattern */
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ff9a9e' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            transition: opacity 1s;
+        }
+
+        /* --- FALLING HEARTS ANIMATION --- */
+        .falling-heart {
+            position: fixed;
+            top: -10%;
+            z-index: 1; /* Above bg pattern, below envelope */
+            font-family: Arial, sans-serif;
+            animation: fall linear forwards;
+            pointer-events: none;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        @keyframes fall {
+            0% { transform: translateY(0) rotate(0deg); opacity: 0.8; }
+            100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+        }
+
+        /* --- ENVELOPE CONTAINER --- */
+        .envelope-wrapper {
+            position: relative;
+            width: 300px;
+            height: 200px;
+            cursor: pointer;
+            z-index: 10;
+            transition: transform 0.5s ease, opacity 0.5s ease;
+        }
+
+        .envelope-wrapper:hover {
+            transform: scale(1.02);
+        }
+
+        /* The Envelope Body */
+        .envelope {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: #ff6b81;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        /* --- ENVELOPE PARTS --- */
+        
+        /* The Letter Inside */
+        .letter-preview {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            height: 90%;
+            background: #fff;
+            border-radius: 5px;
+            transition: transform 0.6s ease-in-out, bottom 0.6s ease-in-out;
+            z-index: 2;
+            padding: 20px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+            overflow: hidden;
+            cursor: pointer;
+            pointer-events: auto;
+        }
+
+        .letter-preview h2 {
+            font-size: 1.5rem;
+            color: #ff4757;
+            margin-bottom: 10px;
+        }
+
+        .letter-preview p {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        /* Side Folds */
+        .left-fold, .right-fold {
+            position: absolute;
+            bottom: 0;
+            width: 0;
+            height: 100%;
+            z-index: 3;
+            border-style: solid;
+            pointer-events: none;
+        }
+
+        .left-fold {
+            left: 0;
+            border-width: 100px 0 100px 150px;
+            border-color: transparent transparent transparent #ff8fa3;
+            border-radius: 0 0 0 10px;
+        }
+
+        .right-fold {
+            right: 0;
+            border-width: 100px 150px 100px 0;
+            border-color: transparent #ff8fa3 transparent transparent;
+            border-radius: 0 0 10px 0;
+        }
+
+        /* Pocket */
+        .pocket {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0; 
+            height: 0; 
+            border-left: 150px solid transparent;
+            border-right: 150px solid transparent;
+            border-bottom: 110px solid #ff7eb3;
+            z-index: 4;
+            border-radius: 0 0 10px 10px;
+            pointer-events: none;
+        }
+
+        /* Flap */
+        .flap {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0; 
+            height: 0; 
+            border-left: 150px solid transparent;
+            border-right: 150px solid transparent;
+            border-top: 110px solid #ff4757;
+            transform-origin: top;
+            transition: transform 0.6s ease-in-out, z-index 0.6s;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        /* Heart Seal */
+        .heart-seal {
+            position: absolute;
+            top: 58%;
+            left: 50%;
+            width: 34px;
+            height: 34px;
+            background: #e84118;
+            transform: translate(-50%, -50%) rotate(45deg);
+            z-index: 15;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            animation: heartPulse 1.5s infinite ease-in-out;
+            transition: opacity 0.3s ease, visibility 0.3s;
+            pointer-events: none;
+        }
+
+        .heart-seal::before, .heart-seal::after {
+            content: '';
+            position: absolute;
+            width: 34px;
+            height: 34px;
+            background: #e84118;
+            border-radius: 50%;
+        }
+
+        .heart-seal::before { left: -20px; }
+        .heart-seal::after { top: -20px; }
+
+        .instruction-text {
+            position: absolute;
+            top: 78%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.85rem;
+            color: #555;
+            background: rgba(255,255,255,0.85);
+            padding: 4px 12px;
+            border-radius: 15px;
+            z-index: 15;
+            pointer-events: none;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: opacity 0.3s ease;
+        }
+
+        @keyframes heartPulse {
+            0% { transform: translate(-50%, -50%) rotate(45deg) scale(1); }
+            50% { transform: translate(-50%, -50%) rotate(45deg) scale(1.1); }
+            100% { transform: translate(-50%, -50%) rotate(45deg) scale(1); }
+        }
+
+        /* --- OPEN STATES --- */
+        .open .flap {
+            transform: rotateX(180deg);
+            z-index: 1;
+        }
+
+        .open .letter-preview {
+            bottom: 120px;
+            transition-delay: 0.1s;
+        }
+        
+        .open .heart-seal, 
+        .open .instruction-text {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .unfold-btn {
+            margin-top: 15px;
+            padding: 8px 16px;
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s 0.6s;
+        }
+
+        .open .unfold-btn {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* --- 3D UNFOLD ANIMATION STYLES --- */
+        
+        .paper-root {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+            pointer-events: none;
+            perspective: 2000px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 1s ease;
+        }
+
+        .paper-group {
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .strip {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .center-strip { left: 0; z-index: 10; }
+        .left-strip { right: 100%; transform-origin: right center; transform: rotateY(179deg); }
+        .right-strip { left: 100%; transform-origin: left center; transform: rotateY(-179deg); }
+
+        .fold-part {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            background: #fff;
+            backface-visibility: hidden;
+            transform-style: preserve-3d;
+            transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1), background-color 2s ease;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.02);
+        }
+
+        .fold-part.center { top: 0; height: 100%; z-index: 5; }
+        .fold-part.top { bottom: 100%; height: 100%; transform-origin: bottom center; transform: rotateX(-179deg); background: #eee; }
+        .fold-part.bottom { top: 100%; height: 100%; transform-origin: top center; transform: rotateX(179deg); background: #eee; }
+
+        /* --- ANIMATION CLASSES --- */
+        .step-1 .fold-part { background: #fff0f3 !important; }
+        .step-1 .fold-part.top { transform: rotateX(0deg); }
+        .step-1 .fold-part.bottom { transform: rotateX(0deg); }
+
+        .step-2 .left-strip { transform: rotateY(0deg); }
+        .step-2 .right-strip { transform: rotateY(0deg); }
+        .step-2 .fold-part { background: #fff0f3 !important; }
+
+        /* --- WAND & REVEAL OVERLAY --- */
+        #reveal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #fff0f3;
+            z-index: 30; /* Above timeline (20), below paper-root (9999) */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1s;
+        }
+
+        #reveal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+            cursor: none; /* Hide default cursor */
+        }
+
+        .wand {
+            position: fixed;
+            font-size: 40px;
+            pointer-events: none;
+            z-index: 40;
+            transform-origin: bottom left;
+            transition: transform 0.1s;
+        }
+
+        .sparkle {
+            position: fixed;
+            pointer-events: none;
+            color: #ffd700; /* Gold */
+            font-size: 20px;
+            z-index: 35;
+            animation: sparkleAnim 0.8s forwards;
+        }
+
+        @keyframes sparkleAnim {
+            0% { transform: scale(0) rotate(0deg); opacity: 1; }
+            50% { transform: scale(1.2) rotate(180deg); opacity: 1; }
+            100% { transform: scale(0) rotate(360deg); opacity: 0; }
+        }
+
+        .reveal-text {
+            font-size: 1.5rem;
+            color: #ff4757;
+            animation: pulseText 2s infinite;
+            font-weight: bold;
+        }
+
+        @keyframes pulseText {
+            0%, 100% { opacity: 0.6; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.05); }
+        }
+
+        /* --- TIMELINE --- */
+        #timeline-view {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* Transparent background so falling hearts show through */
+            background: transparent; 
+            z-index: 20;
+            overflow-y: auto;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1s ease;
+            padding-bottom: 50px;
+        }
+
+        #timeline-view.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 40px 20px;
+            /* Semi-transparent white to read text over hearts */
+            background: rgba(255,255,255,0.7); 
+            border-bottom: 2px dashed #ffcad4;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #ff4757;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #888;
+            font-style: italic;
+        }
+
+        /* Timeline Container */
+        .timeline-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 0 20px;
+            position: relative;
+        }
+
+        .timeline-container::before {
+            content: '';
+            position: absolute;
+            left: 30px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #ffcad4;
+        }
+
+        /* POLAROID STYLE CARD */
+        .memory-card {
+            background: white;
+            margin-bottom: 50px;
+            margin-left: 30px;
+            margin-right: 20px;
+            padding: 12px 12px 30px 12px;
+            border-radius: 2px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+            position: relative;
+            opacity: 0;
+            transform: translateY(30px) rotate(-1deg);
+            transition: all 0.6s ease-out;
+        }
+
+        .memory-card.visible {
+            opacity: 1;
+            transform: translateY(0) rotate(-1deg);
+        }
+        
+        .memory-card:hover {
+            transform: translateY(0) rotate(0deg) scale(1.02);
+            z-index: 5;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+        }
+
+        .memory-card::before {
+            content: '❤';
+            position: absolute;
+            left: -38px;
+            top: 25px;
+            width: 30px;
+            height: 30px;
+            background: #ff4757;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            font-size: 12px;
+            border: 4px solid #fff0f3;
+        }
+
+        .date {
+            display: block;
+            margin-top: 15px;
+            font-size: 0.75rem;
+            color: #999;
+            font-family: 'Courier New', monospace;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* PHOTO GRID SYSTEM */
+        .photo-grid {
+            display: grid;
+            gap: 2px;
+            width: 100%;
+            background: #e0e0e0; /* Gray background helps debug missing images */
+            border: 1px solid #eee;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
+            overflow: hidden;
+            /* CRITICAL FIX: Explicit Height for fallback */
+            height: 300px; 
+        }
+
+        .photo-grid img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* CHANGED back to cover for better quality */
+            display: block;
+        }
+
+        /* 1 Image */
+        .photo-grid.grid-1 { grid-template-columns: 1fr; }
+
+        /* 2 Images */
+        .photo-grid.grid-2 { 
+            grid-template-columns: 1fr 1fr; 
+            aspect-ratio: 3/2; 
+        }
+
+        /* 3 Images */
+        .photo-grid.grid-3 { 
+            grid-template-columns: 1fr 1fr; 
+            grid-template-rows: 1.5fr 1fr; 
+            aspect-ratio: 3/4; 
+            height: 400px; /* Explicit height for 3-grid */
+        }
+        .photo-grid.grid-3 img:first-child {
+            grid-column: span 2;
+        }
+
+        /* 4 Images */
+        .photo-grid.grid-4 { 
+            grid-template-columns: 1fr 1fr; 
+            grid-template-rows: 1fr 1fr;
+            aspect-ratio: 1/1; 
+            height: 350px; /* Explicit height for 4-grid */
+        }
+
+        .memory-text {
+            font-family: 'Caveat', cursive; 
+            font-size: 1.4rem; 
+            line-height: 1.4;
+            color: #333;
+            margin-top: 5px;
+        }
+
+        .music-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 100;
+            font-size: 20px;
+        }
+        
+        /* --- SECRET SECTION STYLES --- */
+        .secret-section {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-top: 50px;
+            margin-bottom: 80px;
+            text-align: center;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            position: relative;
+            z-index: 5;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .secret-question h3 {
+            color: #ff4757;
+            margin-bottom: 20px;
+            font-family: 'Georgia', serif;
+        }
+        
+        .secret-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .secret-input {
+            padding: 12px;
+            border: 2px solid #ffcad4;
+            border-radius: 8px;
+            font-size: 1rem;
+            text-align: center;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        
+        .secret-input:focus {
+            border-color: #ff4757;
+        }
+        
+        .unlock-btn {
+            padding: 10px 25px;
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+        }
+        
+        .unlock-btn:hover {
+            background: #ff2e43;
+            transform: scale(1.05);
+        }
+        
+        /* --- IDENTITY MODAL STYLES --- */
+        .identity-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        
+        .identity-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .identity-box {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 90%;
+            width: 320px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transform: translateY(20px);
+            transition: transform 0.3s;
+        }
+        
+        .identity-overlay.active .identity-box {
+            transform: translateY(0);
+        }
+        
+        .identity-box h3 {
+            color: #ff4757;
+            margin-bottom: 15px;
+            font-family: 'Georgia', serif;
+        }
+        
+        .shake {
+            animation: shake 0.5s;
+        }
+        
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            50% { transform: translateX(10px); }
+            75% { transform: translateX(-10px); }
+            100% { transform: translateX(0); }
+        }
+
+        /* --- FULL SCREEN SURPRISE OVERLAY --- */
+        #surprise-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: radial-gradient(circle at center, #ffe0e9 0%, #ffcad4 100%);
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.8s ease;
+            perspective: 2000px;
+        }
+        
+        #surprise-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        /* NEW BOUQUET CSS */
+        .bouquet-container {
+            position: relative;
+            width: 300px; /* Wider for more flowers */
+            height: 400px;
+            transform: scale(0);
+            transition: transform 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            margin-bottom: 20px;
+            margin-top: 50px;
+        }
+        
+        .bouquet-container.visible {
+            transform: scale(1);
+        }
+
+        /* The Paper Cone */
+        .paper-cone {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 90px solid transparent;
+            border-right: 90px solid transparent;
+            border-top: 220px solid #d4a373; /* Kraft Paper Color */
+            border-radius: 0 0 5px 5px;
+            z-index: 20; /* In front of stems */
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.2));
+        }
+        
+        /* Fold effect on paper */
+        .paper-cone::after {
+            content: '';
+            position: absolute;
+            top: -220px;
+            right: -90px;
+            width: 0;
+            height: 0;
+            border-left: 90px solid transparent;
+            border-right: 30px solid transparent;
+            border-top: 220px solid rgba(255,255,255,0.15); /* Lighter fold */
+        }
+
+        /* Flower Group Container - aligned relative to cone */
+        .flowers {
+            position: absolute;
+            bottom: 220px; /* Start at top of cone */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 240px;
+            height: 200px;
+            z-index: 15; /* Just behind front of cone, but visible */
+        }
+
+        /* Generic Flower Class */
+        .flower {
+            position: absolute;
+            width: 40px;
+            height: 50px;
+            transform-origin: bottom center;
+        }
+
+        /* Flower Colors */
+        .pink { --bg: #ff69b4; }
+        .hotpink { --bg: #ff1493; }
+        .purple { --bg: #9c27b0; }
+        .lightpink { --bg: #ffc1e3; }
+        .deeppurple { --bg: #7b1fa2; }
+
+        /* Flower Shape */
+        .tulip-head {
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg);
+            border-radius: 0 0 15px 15px; /* Cup shape */
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset -5px -5px 10px rgba(0,0,0,0.1);
+        }
+
+        /* Petal Definition */
+        .tulip-head::before {
+            content: '';
+            position: absolute;
+            top: -5px; left: 0; width: 50%; height: 100%;
+            border-radius: 20px 20px 0 0;
+            background: rgba(255,255,255,0.1);
+            transform: rotate(10deg);
+        }
+        .tulip-head::after {
+            content: '';
+            position: absolute;
+            top: -10px; left: 10px; width: 20px; height: 30px;
+            border-radius: 50%;
+            background: inherit;
+            box-shadow: 0 0 0 2px rgba(0,0,0,0.05);
+            z-index: 2;
+        }
+        
+        .peak {
+            position: absolute;
+            top: -8px;
+            width: 18px; height: 18px;
+            background: inherit;
+            border-radius: 50% 50% 0 0;
+            z-index: 1;
+        }
+        .peak.left { left: 0; transform: rotate(-10deg); }
+        .peak.right { right: 0; transform: rotate(10deg); }
+
+        /* Stems & Leaves */
+        .stem-group {
+            position: absolute;
+            bottom: -150px; left: 18px; /* Extend down into cone */
+            width: 4px; height: 160px;
+            background: #4caf50;
+            z-index: -1;
+        }
+        
+        .leaf-left {
+            position: absolute;
+            background: #4caf50;
+            width: 20px; height: 60px;
+            border-radius: 50% 0 50% 0;
+            transform: rotate(-20deg);
+            bottom: 50px; left: -15px;
+        }
+        .leaf-right {
+            position: absolute;
+            background: #43a047;
+            width: 20px; height: 50px;
+            border-radius: 0 50% 0 50%;
+            transform: rotate(20deg);
+            bottom: 30px; right: -15px;
+        }
+
+        /* Arranging the Bouquet - 3 Rows */
+        
+        /* Row 1: Back (Highest/Furthest) */
+        .f1 { bottom: 60px; left: 20px; transform: rotate(-25deg); z-index: 1; }
+        .f2 { bottom: 70px; left: 70px; transform: rotate(-10deg); z-index: 1; }
+        .f3 { bottom: 70px; left: 120px; transform: rotate(10deg); z-index: 1; }
+        .f4 { bottom: 60px; left: 170px; transform: rotate(25deg); z-index: 1; }
+
+        /* Row 2: Middle */
+        .f5 { bottom: 30px; left: 0px; transform: rotate(-35deg); z-index: 2; }
+        .f6 { bottom: 40px; left: 50px; transform: rotate(-15deg); z-index: 2; }
+        .f7 { bottom: 45px; left: 95px; transform: rotate(0deg); z-index: 2; }
+        .f8 { bottom: 40px; left: 140px; transform: rotate(15deg); z-index: 2; }
+        .f9 { bottom: 30px; left: 190px; transform: rotate(35deg); z-index: 2; }
+
+        /* Row 3: Front (Lowest) */
+        .f10 { bottom: 0px; left: 40px; transform: rotate(-20deg); z-index: 3; }
+        .f11 { bottom: -5px; left: 95px; transform: rotate(0deg); z-index: 3; }
+        .f12 { bottom: 0px; left: 150px; transform: rotate(20deg); z-index: 3; }
+
+        .final-greeting {
+            margin-top: 50px;
+            font-family: 'Dancing Script', cursive; /* Updated to Dancing Script */
+            font-size: 3rem;
+            color: #d63031;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 1s 1s ease;
+            text-align: center;
+            text-shadow: 2px 2px 0px rgba(255,255,255,0.5);
+        }
+        
+        .bouquet-container.visible ~ .final-greeting {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .return-btn {
+            margin-top: 30px;
+            padding: 12px 30px;
+            background: white;
+            color: #ff4757;
+            border: 2px solid #ff4757;
+            border-radius: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.5s 1.5s ease;
+        }
+        
+        .return-btn:hover {
+            background: #ff4757;
+            color: white;
+        }
+
+        .bouquet-container.visible ~ .return-btn {
+            opacity: 1;
+        }
+
+        /* Mobile Optimization */
+        @media (min-width: 768px) {
+            .timeline-container::before {
+                left: 50%;
+            }
+            .memory-card {
+                width: 45%;
+                margin-left: 0;
+                margin-right: 0;
+            }
+            /* Alternate sides & Rotations for scattered look */
+            .memory-card:nth-child(odd) {
+                margin-right: auto;
+                text-align: right;
+                transform: translateY(30px) rotate(-3deg);
+            }
+            .memory-card:nth-child(odd).visible {
+                transform: translateY(0) rotate(-3deg);
+            }
+            
+            .memory-card:nth-child(even) {
+                margin-left: auto;
+                transform: translateY(30px) rotate(3deg);
+            }
+            .memory-card:nth-child(even).visible {
+                transform: translateY(0) rotate(3deg);
+            }
+            
+            .memory-card:nth-child(odd)::before {
+                left: auto;
+                right: -42px;
+            }
+            .memory-card:nth-child(even)::before {
+                left: -42px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-hearts"></div>
+
+    <div class="envelope-wrapper" id="envelopeWrapper">
+        <div class="envelope">
+            <div class="letter-preview" id="letterPreview">
+                <h2>Hi po</h2>
+                <p>Sana kahit papano mapangiti kita...</p>
+                <button class="unfold-btn" id="unfoldBtn">Unfold Letter</button>
+            </div>
+            <div class="left-fold"></div>
+            <div class="right-fold"></div>
+            <div class="pocket"></div>
+            <div class="flap"></div>
+            <div class="heart-seal"></div>
+            <div class="instruction-text">Click to Open</div>
+        </div>
+    </div>
+
+    <!-- Identity Verification Modal (New) -->
+    <div class="identity-overlay" id="identityOverlay">
+        <div class="identity-box">
+            <h3>Identity Check</h3>
+            <p style="margin-bottom: 15px; font-size: 0.9rem;">Please enter our special date:</p>
+            <div class="secret-input-group">
+                <input type="text" id="identityDate" class="secret-input" placeholder="MM-DD-YY">
+                <button id="verifyIdentityBtn" class="unlock-btn">Verify</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wand Reveal Overlay -->
+    <div id="reveal-overlay">
+        <div class="reveal-text">Wave your wand to reveal! 🪄</div>
+    </div>
+
+    <div id="timeline-view">
+        <div class="header">
+            <h1>Storyline</h1>
+            <p>Every moment with you is precious to me.</p>
+        </div>
+
+        <div class="timeline-container">
+            <!-- Memory 1 -->
+            <div class="memory-card">
+                <div class="photo-grid grid-1">
+                    <!-- FIXED GOOGLE DRIVE LINK to be a direct image source -->
+                    <img src="unangpitik.jpeg" alt="First Date">
+                </div>
+                <span class="date">Ang unang pitik</span>
+                <p class="memory-text">Ito yung isa sa kauna-unahang kilig moments natin haha. Diko talaga alam na may other pov to pero astig kasi nasaktuhan na nakunan din us in other pov hahaha. One of the most precious moments to me.</p>
+            </div>
+
+            <!-- Memory 2: Two Images -->
+            <div class="memory-card">
+                <div class="photo-grid grid-2">
+                    <img src="firstval.jpg" alt="Adventure 1">
+                    <img src="firstval3.jpg" alt="Adventure 3">
+                </div>
+                <span class="date">Unang Valentines Day</span>
+                <p class="memory-text">Eto ung pinaka unang time na mag cecelebrate us ng Valentines. Mejo kinabahan ako kasi baka naubusan na ng tulips, pero buti meron pa at saktong iisa na lng ung kulay pink hahaha.</p>
+            </div>
+
+            <!-- Memory 3: Three Images -->
+            <div class="memory-card">
+                <div class="photo-grid grid-3">
+                    <img src="secondval2.jpeg" alt="">
+                    <img src="secondval.jpeg" alt="">
+                    <img src="secondval3.jpg" alt="">
+                </div>
+                <span class="date">Pangalwang Valentines Day</span>
+                <p class="memory-text">Busog tayo that day haha. Kahit hindi tayo as in gumala, memorable pa rin talaga dahil kasama kita that time.</p>
+            </div>
+
+            <!-- Memory 4: Four Images -->
+            <div class="memory-card">
+                <!-- UPDATED TO A 4-IMAGE GRID (using placeholders/repeats for demo) -->
+                <div class="photo-grid grid-1">
+                    <img src="thirdval.jpeg" alt="">
+                </div>
+                <span class="date">Today</span>
+                <p class="memory-text">Happy Valentine's Day! Sorry hindi man lang ako nakapagprepare dahil nagkasabay sabay sa schedule, pero hindi naman pala natuloy ung pagppresent hehe. Eto lang maiibigay ko sayo for now.</p>
+            </div>
+            
+            <!-- Secret Section -->
+            <div class="secret-section" id="secretSection">
+                <div class="secret-question" id="secretQuestion">
+                    <h3>One last question...</h3>
+                    <div class="secret-input-group">
+                        <label for="secretCode">What is our term of endearment?</label>
+                        <input type="text" id="secretCode" class="secret-input" placeholder="Type here...">
+                        <button id="unlockBtn" class="unlock-btn">Unlock</button>
+                    </div>
+                </div>
+            </div>
+
+            <div style="height: 50px;"></div>
+        </div>
+    </div>
+
+    <!-- FULL SCREEN SURPRISE OVERLAY -->
+    <div id="surprise-overlay">
+        
+        <div class="bouquet-container" id="bouquet">
+            <!-- Brown Paper Cone -->
+            <div class="paper-cone"></div>
+            
+            <!-- Flower Group -->
+            <div class="flowers">
+                <!-- Row 1 (Back) -->
+                <div class="flower f1 pink"><div class="tulip-head"><div class="peak left"></div><div class="peak right"></div></div><div class="stem-group"><div class="leaf-left"></div></div></div>
+                <div class="flower f2 purple"><div class="tulip-head"><div class="peak left"></div><div class="peak right"></div></div><div class="stem-group"><div class="leaf-right"></div></div></div>
+                <div class="flower f3 hotpink"><div class="tulip-head"><div class="peak left"></div><div class="peak right"></div></div><div class="stem-group"></div></div>
+                <div class="flower f4 deeppurple"><div class="tulip-head"><div class="peak left"></div><div class="peak right"></div></div><div class="stem-group"><div class="leaf-left"></div></div></div>
+                
+                <!-- Row 2 (Middle) -->
+                <div class="flower f5 lightpink"><div class="tulip-head"><div class="peak left"></div><div class="peak right"></div></div><div class="stem-group"><div class="leaf-right"></div></div></div>
+                <div class="flower f6 pink"><div class="tulip-head"><div class="peak left"></div><div class="peak right"></div></div><div class="stem-group"></div></div>
+                <div class="flower f7 purple"><div class="tulip-head"><div class="peak left"></div><div class="peak right"></div></div><div class="stem-group"><div class="leaf-left"></div></div></div>
+                <div class="flower f8 hotpink"><div class="tulip-head"><div class="peak left"></div><div class="peak right"></div></div><div class="stem-group"></div></div>
+                <div class="flower f9 lightpink"><div class="tulip-head"><div class="peak left"></div><div class="peak right"></div></div><div class="stem-group"><div class="leaf-right"></div></div></div>
+                
+                <!-- Row 3 (Front) -->
+                <div class="flower f10 deeppurple"><div class="tulip-head"><div class="peak left"></div><div class="peak right"></div></div><div class="stem-group"></div></div>
+                <div class="flower f11 pink"><div class="tulip-head"><div class="peak left"></div><div class="peak right"></div></div><div class="stem-group"><div class="leaf-left"></div></div></div>
+                <div class="flower f12 purple"><div class="tulip-head"><div class="peak left"></div><div class="peak right"></div></div><div class="stem-group"><div class="leaf-right"></div></div></div>
+            </div>
+        </div>
+        
+        <div class="final-greeting">Happy Valentine's Day!</div>
+        <button class="return-btn" id="returnBtn">Return to Timeline</button>
+    </div>
+
+    <!-- AUDIO ELEMENT ADDED HERE -->
+    <audio id="bgMusic" loop>
+        <!-- Replace 'your-song.mp3' with your actual file path or direct URL -->
+        <source src="audio-song.mp3" type="audio/mpeg"> 
+    </audio>
+
+    <div class="music-btn" id="musicBtn">🎵</div> <!-- Removed inline alert -->
+
+    <script>
+        // --- VARIABLES ---
+        const envelopeWrapper = document.getElementById('envelopeWrapper');
+        const letterPreview = document.getElementById('letterPreview');
+        const unfoldBtn = document.getElementById('unfoldBtn');
+        const timelineView = document.getElementById('timeline-view');
+        const memoryCards = document.querySelectorAll('.memory-card');
+        const bgHearts = document.querySelector('.bg-hearts');
+        const revealOverlay = document.getElementById('reveal-overlay');
+        
+        // Identity & Secret Section Variables
+        const identityOverlay = document.getElementById('identityOverlay');
+        const identityDateInput = document.getElementById('identityDate');
+        const verifyIdentityBtn = document.getElementById('verifyIdentityBtn');
+        const identityBox = document.querySelector('.identity-box');
+
+        const secretSection = document.getElementById('secretSection');
+        const secretQuestion = document.getElementById('secretQuestion');
+        const secretInput = document.getElementById('secretCode');
+        const unlockBtn = document.getElementById('unlockBtn');
+        const surpriseOverlay = document.getElementById('surprise-overlay');
+        const bouquet = document.getElementById('bouquet');
+        const returnBtn = document.getElementById('returnBtn');
+        
+        // Music Variables
+        const musicBtn = document.getElementById('musicBtn');
+        const bgMusic = document.getElementById('bgMusic');
+        let isPlaying = false;
+
+        // --- FALLING HEARTS BACKGROUND ---
+        function createFallingHeart() {
+            const heart = document.createElement('div');
+            heart.classList.add('falling-heart');
+            heart.innerHTML = Math.random() > 0.5 ? '❤' : '♥';
+            
+            // Randomize styling
+            const size = Math.random() * 15 + 10; // 10px to 25px
+            heart.style.fontSize = `${size}px`;
+            heart.style.left = `${Math.random() * 100}vw`;
+            
+            const duration = Math.random() * 3 + 4; // 4s to 7s
+            heart.style.animationDuration = `${duration}s`;
+            
+            // Random color tint
+            const colors = ['#ff9a9e', '#ffc3a0', '#ffafbd', '#ffc3a0'];
+            heart.style.color = colors[Math.floor(Math.random() * colors.length)];
+
+            document.body.appendChild(heart);
+
+            // Cleanup
+            setTimeout(() => {
+                heart.remove();
+            }, duration * 1000);
+        }
+
+        setInterval(createFallingHeart, 300); // Create one every 300ms
+
+        // --- ENVELOPE INTERACTION ---
+        envelopeWrapper.addEventListener('click', () => {
+            // Instead of opening, show Identity Check first
+            if (!envelopeWrapper.classList.contains('open')) {
+                identityOverlay.classList.add('active');
+            }
+        });
+
+        // --- IDENTITY VERIFICATION LOGIC ---
+        // Simple Obfuscation to hide answers in code (Base64)
+        // "03-26-23" -> MDMtMjYtMjM=
+        // "lovie" -> bG92aWU=
+        const checkPayload = (input, targetHash) => {
+            try {
+                return btoa(input.trim()) === targetHash;
+            } catch (e) {
+                return false;
+            }
+        };
+
+        verifyIdentityBtn.addEventListener('click', () => {
+            const dateInput = identityDateInput.value;
+            // Target Hash for "03-26-23"
+            const target = "MDMtMjYtMjM="; 
+
+            if (checkPayload(dateInput, target)) {
+                // Success
+                identityOverlay.classList.remove('active');
+                setTimeout(() => {
+                    envelopeWrapper.classList.add('open');
+                }, 300);
+            } else {
+                // Shake Error
+                identityBox.classList.add('shake');
+                identityDateInput.style.borderColor = 'red';
+                setTimeout(() => {
+                    identityBox.classList.remove('shake');
+                    identityDateInput.style.borderColor = '#ffcad4';
+                }, 500);
+            }
+        });
+
+        // --- COMPLEX 3D UNFOLD ANIMATION HANDLER ---
+        function triggerUnfold(e) {
+            e.stopPropagation();
+
+            // Auto-play music on unfold
+            if (!isPlaying) {
+                bgMusic.play().then(() => {
+                    isPlaying = true;
+                    musicBtn.textContent = '⏸';
+                }).catch(e => console.log("Audio play failed (browser policy):", e));
+            }
+
+            // 1. Get Geometry
+            const rect = letterPreview.getBoundingClientRect();
+            const startWidth = rect.width;
+            const startHeight = rect.height;
+
+            // 2. Hide Original Envelope
+            envelopeWrapper.style.opacity = '0';
+            setTimeout(() => envelopeWrapper.style.display = 'none', 500);
+            
+            // FADE OUT FALLING HEARTS TEMPORARILY
+            // We can target bg-hearts opacity, but we want the falling ones.
+            // Let's just let them fall. The paper goes on top anyway.
+
+            // 3. Create 3D Structure
+            const root = document.createElement('div');
+            root.className = 'paper-root';
+
+            const group = document.createElement('div');
+            group.className = 'paper-group';
+            group.style.width = startWidth + 'px';
+            group.style.height = startHeight + 'px';
+            
+            const createStrip = (cls) => {
+                const s = document.createElement('div');
+                s.className = `strip ${cls}`;
+                s.style.width = startWidth + 'px'; 
+                
+                const top = document.createElement('div');
+                top.className = 'fold-part top';
+                s.appendChild(top);
+
+                const center = document.createElement('div');
+                center.className = 'fold-part center';
+                s.appendChild(center);
+
+                const bot = document.createElement('div');
+                bot.className = 'fold-part bottom';
+                s.appendChild(bot);
+
+                return s;
+            }
+
+            const leftStrip = createStrip('left-strip');
+            const centerStrip = createStrip('center-strip');
+            const rightStrip = createStrip('right-strip');
+
+            leftStrip.querySelectorAll('.fold-part').forEach(el => el.style.background = '#ddd');
+            rightStrip.querySelectorAll('.fold-part').forEach(el => el.style.background = '#ddd');
+
+            group.appendChild(centerStrip);
+            group.appendChild(leftStrip);
+            group.appendChild(rightStrip);
+            root.appendChild(group);
+            document.body.appendChild(root);
+
+            const scaleX = window.innerWidth / (startWidth * 3);
+            const scaleY = window.innerHeight / (startHeight * 3);
+            const finalScale = Math.max(scaleX, scaleY) * 1.15;
+
+            // 4. Animation Sequence
+            root.offsetHeight; 
+
+            // T+100ms: Unfold Vertical
+            setTimeout(() => {
+                root.classList.add('step-1');
+            }, 100);
+
+            // T+1000ms: Unfold Horizontal & Scale
+            setTimeout(() => {
+                root.classList.add('step-2');
+                group.style.transform = `scale(${finalScale})`; 
+                
+                // Fade in reveal overlay BEHIND paper near end of scale
+                setTimeout(() => {
+                    revealOverlay.classList.add('active');
+                }, 800);
+
+            }, 1000);
+
+            // T+2500ms: Remove Paper & Start Wand Mode
+            setTimeout(() => {
+                document.body.style.background = '#fff0f3';
+                root.style.opacity = '0'; // Fade out paper
+
+                setTimeout(() => {
+                    root.remove();
+                    initWandMode(); // START MAGIC
+                }, 1000);
+
+            }, 2500);
+        }
+
+        // Trigger unfold on button click
+        unfoldBtn.addEventListener('click', triggerUnfold);
+        
+        letterPreview.addEventListener('click', (e) => {
+            if(envelopeWrapper.classList.contains('open')) {
+                triggerUnfold(e);
+            }
+        });
+
+
+        // --- WAND MAGIC LOGIC ---
+        function initWandMode() {
+            // Create Wand Element
+            const wand = document.createElement('div');
+            wand.className = 'wand';
+            wand.textContent = '🪄';
+            document.body.appendChild(wand);
+
+            let totalDistance = 0;
+            let lastX = 0;
+            let lastY = 0;
+            let isRevealed = false;
+
+            const updateWand = (x, y) => {
+                if (isRevealed) return;
+
+                // Move wand
+                wand.style.left = (x - 10) + 'px';
+                wand.style.top = (y - 30) + 'px';
+
+                // Create Sparkle
+                if (Math.random() > 0.3) { // limit sparkles
+                    const sparkle = document.createElement('div');
+                    sparkle.className = 'sparkle';
+                    sparkle.textContent = Math.random() > 0.5 ? '✨' : '★';
+                    sparkle.style.left = x + 'px';
+                    sparkle.style.top = y + 'px';
+                    // Random color slight variation
+                    const hue = 40 + Math.random() * 20; // Gold/Yellowish
+                    sparkle.style.color = `hsl(${hue}, 100%, 50%)`;
+                    sparkle.style.fontSize = (10 + Math.random() * 20) + 'px';
+                    document.body.appendChild(sparkle);
+
+                    setTimeout(() => sparkle.remove(), 800);
+                }
+
+                // Track Distance
+                if (lastX !== 0) {
+                    const dist = Math.sqrt(Math.pow(x - lastX, 2) + Math.pow(y - lastY, 2));
+                    totalDistance += dist;
+                }
+                lastX = x;
+                lastY = y;
+
+                // Trigger Reveal if waved enough (~1500px distance)
+                if (totalDistance > 1500) {
+                    isRevealed = true;
+                    finishReveal(wand);
+                }
+            };
+
+            // Mouse Events
+            document.addEventListener('mousemove', (e) => updateWand(e.clientX, e.clientY));
+            
+            // Touch Events (prevent scroll while waving)
+            document.addEventListener('touchmove', (e) => {
+                e.preventDefault(); 
+                const touch = e.touches[0];
+                updateWand(touch.clientX, touch.clientY);
+            }, { passive: false });
+        }
+
+        function finishReveal(wand) {
+            // Big explosion of sparkles
+            for(let i=0; i<30; i++) {
+                setTimeout(() => {
+                    const sparkle = document.createElement('div');
+                    sparkle.className = 'sparkle';
+                    sparkle.textContent = '✨';
+                    sparkle.style.left = (window.innerWidth/2 + (Math.random()-0.5)*300) + 'px';
+                    sparkle.style.top = (window.innerHeight/2 + (Math.random()-0.5)*300) + 'px';
+                    sparkle.style.fontSize = '40px';
+                    document.body.appendChild(sparkle);
+                    setTimeout(() => sparkle.remove(), 1000);
+                }, i * 50);
+            }
+
+            // Remove overlay and wand
+            revealOverlay.style.opacity = '0';
+            wand.style.transition = 'opacity 0.5s, transform 0.5s';
+            wand.style.opacity = '0';
+            wand.style.transform = 'scale(2)';
+            
+            // Show Timeline
+            setTimeout(() => {
+                timelineView.classList.add('active');
+                document.body.style.overflow = 'auto'; 
+                // falling hearts continue in bg
+                revealOverlay.style.display = 'none';
+                wand.remove();
+                
+                checkScroll();
+            }, 500);
+        }
+
+
+        // --- SCROLL ANIMATION ---
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        memoryCards.forEach(card => {
+            observer.observe(card);
+        });
+
+        function checkScroll() {
+            memoryCards.forEach(card => {
+                const rect = card.getBoundingClientRect();
+                if(rect.top < window.innerHeight) {
+                    card.classList.add('visible');
+                }
+            });
+        }
+        
+        // --- SECRET CODE LOGIC ---
+        unlockBtn.addEventListener('click', () => {
+            const answer = secretInput.value.toLowerCase();
+            // Target Hash for "lovie"
+            const target = "bG92aWU="; 
+            
+            if (checkPayload(answer, target)) {
+                // Success!
+                // 1. Show Full Screen Overlay
+                surpriseOverlay.classList.add('active');
+                
+                // 2. Trigger Animation after brief delay (to ensure overlay is visible)
+                setTimeout(() => {
+                    bouquet.classList.add('visible');
+                }, 300);
+                
+            } else {
+                // Wrong Answer - Shake Animation
+                secretSection.classList.add('shake');
+                secretInput.style.borderColor = 'red';
+                
+                setTimeout(() => {
+                    secretSection.classList.remove('shake');
+                    secretInput.style.borderColor = '#ffcad4';
+                }, 500);
+            }
+        });
+        
+        // --- RETURN BUTTON LOGIC ---
+        returnBtn.addEventListener('click', () => {
+            // Fade out surprise overlay
+            surpriseOverlay.classList.remove('active');
+            
+            // Reset box (optional: wait for fade out)
+            setTimeout(() => {
+                bouquet.classList.remove('visible');
+            }, 800);
+            
+            // Clear input for fun
+            secretInput.value = '';
+        });
+
+        // --- MUSIC BUTTON LOGIC ---
+        musicBtn.addEventListener('click', () => {
+            if (isPlaying) {
+                bgMusic.pause();
+                musicBtn.textContent = '🎵';
+                musicBtn.style.animation = 'none'; // Stop spinning/pulsing if added
+            } else {
+                bgMusic.play();
+                musicBtn.textContent = '⏸';
+            }
+            isPlaying = !isPlaying;
+        });
+    </script>
+</body>
+</html>
