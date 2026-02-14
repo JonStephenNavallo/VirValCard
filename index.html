@@ -396,6 +396,8 @@
             pointer-events: none;
             transition: opacity 1s ease;
             padding-bottom: 50px;
+            /* FIX FOR MOBILE SCROLL */
+            -webkit-overflow-scrolling: touch; 
         }
 
         #timeline-view.active {
@@ -1336,19 +1338,25 @@
                 // Trigger Reveal if waved enough (~1500px distance)
                 if (totalDistance > 1500) {
                     isRevealed = true;
+                    // Remove listeners to restore scrolling
+                    document.removeEventListener('mousemove', mouseMoveHandler);
+                    document.removeEventListener('touchmove', touchMoveHandler);
                     finishReveal(wand);
                 }
             };
 
-            // Mouse Events
-            document.addEventListener('mousemove', (e) => updateWand(e.clientX, e.clientY));
-            
-            // Touch Events (prevent scroll while waving)
-            document.addEventListener('touchmove', (e) => {
+            const mouseMoveHandler = (e) => updateWand(e.clientX, e.clientY);
+            const touchMoveHandler = (e) => {
                 e.preventDefault(); 
                 const touch = e.touches[0];
                 updateWand(touch.clientX, touch.clientY);
-            }, { passive: false });
+            };
+
+            // Mouse Events
+            document.addEventListener('mousemove', mouseMoveHandler);
+            
+            // Touch Events (prevent scroll while waving)
+            document.addEventListener('touchmove', touchMoveHandler, { passive: false });
         }
 
         function finishReveal(wand) {
